@@ -1,6 +1,7 @@
 import graph.GraphBuilder;
 import model.Player;
 import scraper.PlayerScraper;
+import graph.GraphVisualizer;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -73,6 +74,7 @@ public class FootBallTeamsGraphs {
         GraphBuilder builder = new GraphBuilder();
         builder.loadAndBuildFromFolder(outputFolderPath);
         builder.printSummary();
+        GraphVisualizer.showGraph(builder.getEdges());
     }
 
     /**
