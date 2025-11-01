@@ -1,3 +1,6 @@
+package scraper;
+
+import model.Player;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;

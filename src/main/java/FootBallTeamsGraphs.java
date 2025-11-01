@@ -1,3 +1,7 @@
+import graph.GraphBuilder;
+import model.Player;
+import scraper.PlayerScraper;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,6 +67,12 @@ public class FootBallTeamsGraphs {
         }
 
         System.out.println("All data successfully downloaded and saved for all teams and seasons.");
+
+        // Build the graph automatically
+        System.out.println("\nBuilding global co-play graph from downloaded data...");
+        GraphBuilder builder = new GraphBuilder();
+        builder.loadAndBuildFromFolder(outputFolderPath);
+        builder.printSummary();
     }
 
     /**
