@@ -1,3 +1,5 @@
+import graph.EvolutionGraphBuilder;
+import graph.EvolutionVisualizer;
 import graph.GraphBuilder;
 import model.Player;
 import scraper.PlayerScraper;
@@ -19,7 +21,12 @@ public class FootBallTeamsGraphs {
      * Each dataset (team + season) is then exported to a CSV file.
      */
     public static void main(String[] args) {
-        //Map: team name -> base URL (without the season parameter)
+        // Configuration
+        boolean downloadNewData = false;
+        boolean showEvolution = true;
+        boolean showStaticGraph = true;
+
+        // Teams to analyze with their Transfermarkt URLs
         Map<String, String> teams = Map.of(
                 "Legia Warszawa", "https://www.transfermarkt.com/legia-warszawa/kader/verein/255/plus/1/galerie/0?saison_id=",
                 "Bayern Munich", "https://www.transfermarkt.com/fc-bayern-munich/kader/verein/27/plus/1/galerie/0?saison_id=",
@@ -31,10 +38,61 @@ public class FootBallTeamsGraphs {
         int startSeason = 1999;
         int endSeason = 2025;
 
-        // Result map: team_season -> list of players
-        Map<String, List<Player>> teamsData = new HashMap<>();
+        // Download data if needed
+        if (downloadNewData) {
+            System.out.println("Downloading player data from Transfermarkt\n");
+            downloadAllTeamData(teams, startSeason, endSeason);
+        } else {
+            System.out.println("Using existing data (set downloadNewData=true to refresh)\n");
+        }
 
-        //Download player data for each team and season
+        // Build and analyze the evolution graph
+        System.out.println("Building temporal co-play graph\n");
+
+        EvolutionGraphBuilder evolutionBuilder = new EvolutionGraphBuilder();
+        evolutionBuilder.loadFromFolder(outputFolderPath);
+
+        // Print evolution statistics
+        evolutionBuilder.printEvolutionSummary();
+
+        // Check if we have data
+        if (evolutionBuilder.getAllSeasons().isEmpty()) {
+            System.out.println("ERROR: No data found!");
+            System.out.println("Please set downloadNewData = true to download data from Transfermarkt,");
+            System.out.println("or make sure CSV files exist in: " + outputFolderPath);
+            return;
+        }
+
+        // Visualize
+        if (showEvolution) {
+            System.out.println("Launching interactive evolution visualizer:\n");
+            System.out.println("Controls:");
+            System.out.println("  - Use slider or Previous/Next buttons to navigate seasons");
+            System.out.println("  - Click 'Animate' for automatic playback");
+            System.out.println("  - Toggle 'Cumulative' for cumulative vs snapshot view");
+            System.out.println("  - Toggle 'Highlight Changes' to see new/departing players\n");
+            System.out.println("Color coding:");
+            System.out.println("  - Blue: Regular players");
+            System.out.println("  - Green: Players who joined this season");
+            System.out.println("  - Red: Players who will leave after this season\n");
+
+            EvolutionVisualizer.visualize(evolutionBuilder);
+        }
+
+        if (showStaticGraph) {
+            System.out.println("Showing static full graph\n");
+            GraphBuilder staticBuilder = new GraphBuilder();
+            staticBuilder.loadAndBuildFromFolder(outputFolderPath);
+            staticBuilder.printSummary();
+            GraphVisualizer.showGraph(staticBuilder.getEdges());
+        }
+    }
+
+    //Download player data for each team and season
+    private static void downloadAllTeamData(Map<String, String> teams, int startSeason, int endSeason) {
+        // Ensure output directory exists
+        new File(outputFolderPath).mkdirs();
+
         for (Map.Entry<String, String> entry : teams.entrySet()) {
             String teamName = entry.getKey();
             String baseUrl = entry.getValue();
@@ -53,9 +111,6 @@ public class FootBallTeamsGraphs {
                         continue;
                     }
 
-                    teamsData.put(teamSeasonKey, players);
-
-                    // Save results to CSV file
                     String fileName = teamName.replace(" ", "_") + "_" + season + ".csv";
                     String fullPath = outputFolderPath + File.separator + fileName;
                     saveToCSV(players, fullPath);
@@ -67,14 +122,7 @@ public class FootBallTeamsGraphs {
             }
         }
 
-        System.out.println("All data successfully downloaded and saved for all teams and seasons.");
-
-        // Build the graph automatically
-        System.out.println("\nBuilding global co-play graph from downloaded data...");
-        GraphBuilder builder = new GraphBuilder();
-        builder.loadAndBuildFromFolder(outputFolderPath);
-        builder.printSummary();
-        GraphVisualizer.showGraph(builder.getEdges());
+        System.out.println("\nData download complete.\n");
     }
 
     /**
